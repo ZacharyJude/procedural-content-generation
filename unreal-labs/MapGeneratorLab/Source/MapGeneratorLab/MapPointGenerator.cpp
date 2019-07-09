@@ -1,28 +1,44 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "MapPointGenerator.h"
 
+struct VoronoiPoint {
+	double x, y;
+
+	bool operator < (const VoronoiPoint& p) const {
+		return tie(x, y) < tie(p.x, p.y);
+	}
+};
+
 // Sets default values
-AMapPointGenerator::AMapPointGenerator()
-{
+AMapPointGenerator::AMapPointGenerator() {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
-void AMapPointGenerator::BeginPlay()
-{
+void AMapPointGenerator::BeginPlay() {
 	Super::BeginPlay();
 
 	auto Generator = new SobolGenerator(HowManyGenerating, 2);
 	vector<double> VectorFromSobol;
+	vector<VoronoiPoint> VoronoiPoints;
 	FVector SpawnLocation = FVector();
 	while (Generator->GetNext(VectorFromSobol)) {
 		SpawnLocation.X = VectorFromSobol[0] * Scalar;
 		SpawnLocation.Y = VectorFromSobol[1] * Scalar;
 		SpawnLocation.Z = 0.0;
 		SpawnActorInWorld(TEXT("Blueprint'/Game/GeneratedPointBP.GeneratedPointBP_C'"), SpawnLocation);
+
+		VoronoiPoints.push_back(VoronoiPoint{ SpawnLocation.X, SpawnLocation.Y });
+		UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] Spawn location (%f, %f)"), SpawnLocation.X, SpawnLocation.Y);
 		VectorFromSobol.clear();
+	}
+
+	sort(VoronoiPoints.begin(), VoronoiPoints.end());
+
+	sweepline<vector<VoronoiPoint>::const_iterator, VoronoiPoint, double> Sweepline{ 1e-8 };
+	Sweepline(VoronoiPoints.cbegin(), VoronoiPoints.cend());
+	for (auto it = Sweepline.vertices_.cbegin(); it != Sweepline.vertices_.cend(); ++it) {
+		UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] Voronoi diagram vertices (%f, %f)"), it->c.x, it->c.y);
 	}
 }
 

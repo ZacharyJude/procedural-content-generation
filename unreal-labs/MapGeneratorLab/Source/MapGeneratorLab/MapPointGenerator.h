@@ -2,16 +2,22 @@
 
 #pragma once
 
+#include <tuple>
+#include <vector>
+#include <algorithm>
+
 #include "Engine.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
 #include "SobolGenerator.h"
+#include "VoronoiDiagram/Fortune/Tomilov/sweepline.hpp"
 #include "MapPointGenerator.generated.h"
 
+using namespace std;
+
 UCLASS()
-class MAPGENERATORLAB_API AMapPointGenerator : public AActor
-{
+class MAPGENERATORLAB_API AMapPointGenerator : public AActor {
 	GENERATED_BODY()
 	
 public:	
