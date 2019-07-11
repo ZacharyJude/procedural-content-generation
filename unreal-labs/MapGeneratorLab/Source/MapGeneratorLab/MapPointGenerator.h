@@ -29,29 +29,37 @@ class MAPGENERATORLAB_API AMapPointGenerator : public AActor {
 	GENERATED_BODY()
 	
 public:	
+	static const double Eps;
+
 	// Sets default values for this actor's properties
 	AMapPointGenerator();
 
-	UPROPERTY(Category = Effects, EditAnywhere)
-	class UParticleSystem *SiteParticleTemplate;
+	UPROPERTY(Category = Map, EditAnywhere, BlueprintReadWrite)
+	float MapWidth = 0.0;
+
+	UPROPERTY(Category = Map, EditAnywhere, BlueprintReadWrite)
+	float MapHeight = 0.0;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
-	class UParticleSystem *VerticeParticleTemplate;
+	bool IsShowSiteLines = false;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
-	double Scalar = 10.0;
+	bool IsShowVerticeLines = false;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
 	unsigned int HowManyGenerating = 10;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
-	double ElementZ = 20.0;
+	float ElementZ = 20.0;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
-	double LineThinkness = 10.0;
+	float LineThinkness = 10.0;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
 	FLinearColor SiteLineColor = FLinearColor::Blue;
+
+	UPROPERTY(Category = Effects, EditAnywhere)
+	FLinearColor VerticeLineColor = FLinearColor::Green;
 
 protected:
 	// Called when the game starts or when spawned
@@ -62,7 +70,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	float PreviousMapWidth = 0.0, PreviousMapHeight = 0.0;
+
 	AActor* SpawnActorInWorld(const TCHAR* ClassName, const FVector& SpawnLocation);
 	sweepline<vector<VoronoiPoint>::const_iterator, VoronoiPoint, double> Sweepline{ 1e-8 };
-	TArray<FBatchedLine> SiteLines;
+	TArray<FBatchedLine> SiteLines, VerticeLines;
+	TArray<AActor> SpawnedActors;
+	vector<VoronoiPoint> SiteVoronoiPoints;
+	void Reset();
+	void Generate();
 };
