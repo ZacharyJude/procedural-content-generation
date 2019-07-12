@@ -119,6 +119,7 @@ void AMapPointGenerator::Generate() {
 			auto verticeBegin = Sweepline.vertices_[it->b];
 			auto verticeEnd = Sweepline.vertices_[it->e];
 
+			UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] begin (%f, %f) end (%f, %f)"), verticeBegin.c.x, verticeBegin.c.y, verticeEnd.c.x, verticeEnd.c.y);
 			VerticeLines.Add(FBatchedLine(
 				FVector(verticeBegin.c.x, verticeBegin.c.y, ElementZ),
 				FVector(verticeEnd.c.x, verticeEnd.c.y, ElementZ),
@@ -127,6 +128,86 @@ void AMapPointGenerator::Generate() {
 				LineThinkness,
 				SDPG_World
 			));
+		}
+		else if (isInfBegin) {
+			auto verticeEnd = Sweepline.vertices_[it->e];
+			auto deltaX = it->l->x - it->r->x;
+			auto deltaY = it->l->y - it->r->y;
+			auto m = -deltaX / deltaY;
+			auto k = verticeEnd.c.y - m * verticeEnd.c.x;
+			auto intersectXWithZeroY = -k / m;
+			auto intersectXWithMaxY = (MapHeight - k) / m;
+			auto intersectY = k;
+			if (0 < intersectXWithZeroY && intersectXWithZeroY < verticeEnd.c.x) {
+				VerticeLines.Add(FBatchedLine(
+					FVector(intersectXWithZeroY, 0.0, ElementZ),
+					FVector(verticeEnd.c.x, verticeEnd.c.y, ElementZ),
+					VerticeLineColor,
+					1000.0f,
+					LineThinkness,
+					SDPG_World
+				));
+			}
+			else if (0 < intersectXWithMaxY && intersectXWithMaxY < verticeEnd.c.x) {
+				VerticeLines.Add(FBatchedLine(
+					FVector(intersectXWithMaxY, MapHeight, ElementZ),
+					FVector(verticeEnd.c.x, verticeEnd.c.y, ElementZ),
+					VerticeLineColor,
+					1000.0f,
+					LineThinkness,
+					SDPG_World
+				));
+			}
+			else {
+				VerticeLines.Add(FBatchedLine(
+					FVector(0.0, intersectY, ElementZ),
+					FVector(verticeEnd.c.x, verticeEnd.c.y, ElementZ),
+					VerticeLineColor,
+					1000.0f,
+					LineThinkness,
+					SDPG_World
+				));
+			}
+		}
+		else {
+			auto verticeBegin = Sweepline.vertices_[it->b];
+			auto deltaX = it->l->x - it->r->x;
+			auto deltaY = it->l->y - it->r->y;
+			auto m = -deltaX / deltaY;
+			auto k = verticeBegin.c.y - m * verticeBegin.c.x;
+			auto intersectXWithZeroY = -k / m;
+			auto intersectXWithMaxY = (MapHeight - k) / m;
+			auto intersectY = m * MapWidth + k;
+			if (verticeBegin.c.x < intersectXWithMaxY && intersectXWithMaxY < MapWidth) {
+				VerticeLines.Add(FBatchedLine(
+					FVector(verticeBegin.c.x, verticeBegin.c.y, ElementZ),
+					FVector(intersectXWithMaxY, MapHeight, ElementZ),
+					VerticeLineColor,
+					1000.0f,
+					LineThinkness,
+					SDPG_World
+				));
+			}
+			else if ((verticeBegin.c.x < intersectXWithZeroY && intersectXWithZeroY < MapWidth)) {
+				VerticeLines.Add(FBatchedLine(
+					FVector(verticeBegin.c.x, verticeBegin.c.y, ElementZ),
+					FVector(intersectXWithZeroY, 0.0, ElementZ),
+					VerticeLineColor,
+					1000.0f,
+					LineThinkness,
+					SDPG_World
+				));
+			}
+			else {
+				VerticeLines.Add(FBatchedLine(
+					FVector(verticeBegin.c.x, verticeBegin.c.y, ElementZ),
+					FVector(MapWidth, intersectY, ElementZ),
+					VerticeLineColor,
+					1000.0f,
+					LineThinkness,
+					SDPG_World
+				));
+			}
 		}
 	}
 
