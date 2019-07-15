@@ -24,6 +24,19 @@ struct VoronoiPoint {
 	}
 };
 
+struct VoronoiVertex {
+	double X, Y;
+	AActor *PointActor;
+	bool IsTruncated;
+};
+
+struct VoronoiEdge {
+	vector<VoronoiVertex>::size_type PVertexBegin, PVertexEnd;
+	vector<VoronoiPoint>::const_iterator PSiteLeft, PSiteRight;
+};
+
+using MapPointGeneratorSweepline = sweepline<vector<VoronoiPoint>::const_iterator, VoronoiPoint, double>;
+
 UCLASS()
 class MAPGENERATORLAB_API AMapPointGenerator : public AActor {
 	GENERATED_BODY()
@@ -44,7 +57,7 @@ public:
 	bool IsShowSiteLines = false;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
-	bool IsShowVerticeLines = false;
+	bool IsShowVertexLines = false;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
 	unsigned int HowManyGenerating = 10;
@@ -56,10 +69,13 @@ public:
 	float LineThinkness = 10.0;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
+	float LineInLifeTime = 1000.0;
+
+	UPROPERTY(Category = Effects, EditAnywhere)
 	FLinearColor SiteLineColor = FLinearColor::Blue;
 
 	UPROPERTY(Category = Effects, EditAnywhere)
-	FLinearColor VerticeLineColor = FLinearColor::Green;
+	FLinearColor VertexLineColor = FLinearColor::Green;
 
 protected:
 	// Called when the game starts or when spawned
@@ -73,10 +89,13 @@ private:
 	float PreviousMapWidth = 0.0, PreviousMapHeight = 0.0;
 
 	AActor* SpawnActorInWorld(const TCHAR* ClassName, const FVector& SpawnLocation);
-	sweepline<vector<VoronoiPoint>::const_iterator, VoronoiPoint, double> Sweepline{ 1e-8 };
-	TArray<FBatchedLine> SiteLines, VerticeLines;
+	TArray<FBatchedLine> SiteLines, VertexLines;
 	TArray<AActor> SpawnedActors;
 	vector<VoronoiPoint> SiteVoronoiPoints;
+	vector<VoronoiVertex> VoronoiVertices;
+	vector<VoronoiEdge> VoronoiEdges;
 	void Reset();
 	void Generate();
+	void ProcessSweeplineEdge(MapPointGeneratorSweepline& Sweepline, MapPointGeneratorSweepline::edge& Edge);
+	bool IsInsideMap(double x, double y);
 };
