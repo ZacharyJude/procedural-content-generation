@@ -140,148 +140,125 @@ void AMapPointGenerator::ProcessSweeplineEdge(MapPointGeneratorSweepline& Sweepl
 	CreatingEdge.PSiteLeft = Edge.l;
 	CreatingEdge.PSiteRight = Edge.r;
 
-	const auto IsInfBegin = Edge.b == Sweepline.inf;
-	const auto IsInfEnd = Edge.e == Sweepline.inf;
-	const auto deltaX = Edge.l->x - Edge.r->x;
-	const auto deltaY = Edge.l->y - Edge.r->y;
-	auto m = -deltaX / deltaY;
+	LineArgs Line;
+	CreateLineArgs(Sweepline, Edge, Line);
 
-	// Base on the precondition of Fortune's algorithm implementation, at most one of the two vertices will be inf. --Zachary
-	if (!IsInfBegin) {
-		auto &verticeBegin = Sweepline.vertices_[Edge.b];
-		auto k = verticeBegin.c.y - m * verticeBegin.c.x;
-		auto intersectXWithZeroY = -k / m;
-		auto intersectXWithMaxY = (MapHeight - k) / m;
-		auto intersectYWithZeroX = k;
-		auto intersectYWithMaxX = m * MapWidth + k;
-
-		if (IsInsideMap(verticeBegin.c.x, verticeBegin.c.y)) {
-			CreatingEdge.PVertexBegin = VoronoiVertices.size();
-			VoronoiVertices.push_back(VoronoiVertex{ verticeBegin.c.x, verticeBegin.c.y, nullptr, false });
-		}
-		else {
-			UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] begin (%f, %f) not in map, m is [%f]"), verticeBegin.c.x, verticeBegin.c.y, m);
-			VoronoiVertex TruncatedVertex;
-			TruncatedVertex.IsTruncated = true;
-			TruncatedVertex.PointActor = nullptr;
-
-			if (0.0 < intersectXWithZeroY && intersectXWithZeroY < MapWidth) {
-				if (verticeBegin.c.y < 0.0) {
-					TruncatedVertex.X = intersectXWithZeroY;
-					TruncatedVertex.Y = 0.0;
-				}
-			}
-
-			if (0.0 < intersectXWithMaxY && intersectXWithMaxY < MapWidth) {
-				if (verticeBegin.c.y > MapHeight) {
-					TruncatedVertex.X = intersectXWithMaxY;
-					TruncatedVertex.Y = MapHeight;
-				}
-			}
-
-			if (0.0 < intersectYWithZeroX && intersectYWithZeroX < MapHeight) {
-				if (verticeBegin.c.x < 0.0) {
-					TruncatedVertex.X = 0.0;
-					TruncatedVertex.Y = intersectYWithZeroX;
-				}
-			}
-
-			if (0.0 < intersectYWithMaxX && intersectYWithMaxX < MapHeight) {
-				if (verticeBegin.c.x > MapWidth) {
-					TruncatedVertex.X = MapWidth;
-					TruncatedVertex.Y = intersectYWithMaxX;
-				}
-			}
-
-			CreatingEdge.PVertexBegin = VoronoiVertices.size();
-			VoronoiVertices.push_back(TruncatedVertex);
-			UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] truncated begin (%f, %f), m for trauncation is [%f]"), TruncatedVertex.X, TruncatedVertex.Y, (TruncatedVertex.Y - verticeBegin.c.y) / (TruncatedVertex.X - verticeBegin.c.x));
-		}
-
-		if (IsInfEnd) {
-			if (verticeBegin.c.x < intersectXWithMaxY && intersectXWithMaxY < MapWidth) {
-				CreatingEdge.PVertexEnd = VoronoiVertices.size();
-				VoronoiVertices.push_back(VoronoiVertex{ intersectXWithMaxY, MapHeight, nullptr, true });
-			}
-			else if ((verticeBegin.c.x < intersectXWithZeroY && intersectXWithZeroY < MapWidth)) {
-				CreatingEdge.PVertexEnd = VoronoiVertices.size();
-				VoronoiVertices.push_back(VoronoiVertex{ intersectXWithZeroY, 0.0, nullptr, true });
-			}
-			else {
-				CreatingEdge.PVertexEnd = VoronoiVertices.size();
-				VoronoiVertices.push_back(VoronoiVertex{ MapWidth, intersectYWithMaxX, nullptr, true });
-			}
+	if (!Line.IsInfBegin) {
+		CreatingEdge.PVertexBegin = CreateTruncatedFiniteVertex(Sweepline.vertices_[Edge.b], Line);
+		if (Line.IsInfEnd) {
+			CreatingEdge.PVertexEnd = CreateTruncatedInfiniteVertex(Sweepline.vertices_[Edge.b], Line);
 		}
 	}
 
-	if (!IsInfEnd) {
-		auto &verticeEnd = Sweepline.vertices_[Edge.e];
-		auto k = verticeEnd.c.y - m * verticeEnd.c.x;
-		auto intersectXWithZeroY = -k / m;
-		auto intersectXWithMaxY = (MapHeight - k) / m;
-		auto intersectYWithZeroX = k;
-		auto intersectYWithMaxX = m * MapWidth + k;
-
-		if (IsInsideMap(verticeEnd.c.x, verticeEnd.c.y)) {
-			CreatingEdge.PVertexEnd = VoronoiVertices.size();
-			VoronoiVertices.push_back(VoronoiVertex{ verticeEnd.c.x, verticeEnd.c.y, nullptr, false });
-		}
-		else {
-			UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] end (%f, %f) not in map, m is [%f]"), verticeEnd.c.x, verticeEnd.c.y, m);
-			VoronoiVertex TruncatedVertex;
-			TruncatedVertex.IsTruncated = true;
-			TruncatedVertex.PointActor = nullptr;
-
-			if (0.0 < intersectXWithZeroY && intersectXWithZeroY < MapWidth) {
-				if (verticeEnd.c.y < 0.0) {
-					TruncatedVertex.X = intersectXWithZeroY;
-					TruncatedVertex.Y = 0.0;
-				}
-			}
-
-			if (0.0 < intersectXWithMaxY && intersectXWithMaxY < MapWidth) {
-				if (verticeEnd.c.y > MapHeight) {
-					TruncatedVertex.X = intersectXWithMaxY;
-					TruncatedVertex.Y = MapHeight;
-				}
-			}
-
-			if (0.0 < intersectYWithZeroX && intersectYWithZeroX < MapHeight) {
-				if (verticeEnd.c.x < 0.0) {
-					TruncatedVertex.X = 0.0;
-					TruncatedVertex.Y = intersectYWithZeroX;
-				}
-			}
-
-			if (0.0 < intersectYWithMaxX && intersectYWithMaxX < MapHeight) {
-				if (verticeEnd.c.x > MapWidth) {
-					TruncatedVertex.X = MapWidth;
-					TruncatedVertex.Y = intersectYWithMaxX;
-				}
-			}
-			
-			CreatingEdge.PVertexEnd = VoronoiVertices.size();
-			VoronoiVertices.push_back(TruncatedVertex);
-			UE_LOG(LogTemp, Log, TEXT("[AMapPointGenerator.Log] truncated end (%f, %f), m for trauncation is [%f]"), TruncatedVertex.X, TruncatedVertex.Y, (TruncatedVertex.Y - verticeEnd.c.y) / (TruncatedVertex.X - verticeEnd.c.x));
-		}
-
-		if (IsInfBegin) {
-			if (0 < intersectXWithZeroY && intersectXWithZeroY < verticeEnd.c.x) {
-				CreatingEdge.PVertexBegin = VoronoiVertices.size();
-				VoronoiVertices.push_back(VoronoiVertex{ intersectXWithZeroY, 0.0, nullptr, true });
-			}
-			else if (0 < intersectXWithMaxY && intersectXWithMaxY < verticeEnd.c.x) {
-				CreatingEdge.PVertexBegin = VoronoiVertices.size();
-				VoronoiVertices.push_back(VoronoiVertex{ intersectXWithMaxY, MapHeight, nullptr, true });
-			}
-			else {
-				CreatingEdge.PVertexBegin = VoronoiVertices.size();
-				VoronoiVertices.push_back(VoronoiVertex{ 0.0, intersectYWithZeroX, nullptr, true });
-			}
+	if (!Line.IsInfEnd) {
+		CreatingEdge.PVertexEnd = CreateTruncatedFiniteVertex(Sweepline.vertices_[Edge.e], Line);
+		if (Line.IsInfBegin) {
+			CreatingEdge.PVertexBegin = CreateTruncatedInfiniteVertex(Sweepline.vertices_[Edge.e], Line);
 		}
 	}
 
 	VoronoiEdges.push_back(CreatingEdge);
+}
+
+void AMapPointGenerator::CreateLineArgs(MapPointGeneratorSweepline& Sweepline, MapPointGeneratorSweepline::edge& Edge, LineArgs& Args) {
+	Args.IsInfBegin = Edge.b == Sweepline.inf;
+	Args.IsInfEnd = Edge.e == Sweepline.inf;
+	const auto deltaX = Edge.l->x - Edge.r->x;
+	const auto deltaY = Edge.l->y - Edge.r->y;
+	Args.Slope = -deltaX / deltaY;
+
+	if (!Args.IsInfBegin) {
+		auto &verticeBegin = Sweepline.vertices_[Edge.b];
+		Args.Intercept = verticeBegin.c.y - Args.Slope * verticeBegin.c.x;
+	}
+	else {
+		auto &verticeEnd = Sweepline.vertices_[Edge.e];
+		Args.Intercept = verticeEnd.c.y - Args.Slope * verticeEnd.c.x;
+	}
+
+	Args.IntersectXWithZeroY = -Args.Intercept / Args.Slope;
+	Args.IntersectXWithMaxY = (MapHeight - Args.Intercept) / Args.Slope;
+	Args.IntersectYWithZeroX = Args.Intercept;
+	Args.IntersectYWithMaxX = Args.Slope * MapWidth + Args.Intercept;
+}
+
+vector<VoronoiVertex>::size_type AMapPointGenerator::CreateTruncatedFiniteVertex(const MapPointGeneratorSweepline::vertex& Vertex, const LineArgs& Args) {
+	vector<VoronoiVertex>::size_type PtrVoronoiVertex;
+	if (IsInsideMap(Vertex.c.x, Vertex.c.y)) {
+		PtrVoronoiVertex = VoronoiVertices.size();
+		VoronoiVertices.push_back(VoronoiVertex{ Vertex.c.x, Vertex.c.y, nullptr, false });
+	}
+	else {
+		VoronoiVertex TruncatedVertex;
+		TruncatedVertex.IsTruncated = true;
+		TruncatedVertex.PointActor = nullptr;
+
+		if (0.0 < Args.IntersectXWithZeroY && Args.IntersectXWithZeroY < MapWidth) {
+			if (Vertex.c.y < 0.0) {
+				TruncatedVertex.X = Args.IntersectXWithZeroY;
+				TruncatedVertex.Y = 0.0;
+			}
+		}
+
+		if (0.0 < Args.IntersectXWithMaxY && Args.IntersectXWithMaxY < MapWidth) {
+			if (Vertex.c.y > MapHeight) {
+				TruncatedVertex.X = Args.IntersectXWithMaxY;
+				TruncatedVertex.Y = MapHeight;
+			}
+		}
+
+		if (0.0 < Args.IntersectYWithZeroX && Args.IntersectYWithZeroX < MapHeight) {
+			if (Vertex.c.x < 0.0) {
+				TruncatedVertex.X = 0.0;
+				TruncatedVertex.Y = Args.IntersectYWithZeroX;
+			}
+		}
+
+		if (0.0 < Args.IntersectYWithMaxX && Args.IntersectYWithMaxX < MapHeight) {
+			if (Vertex.c.x > MapWidth) {
+				TruncatedVertex.X = MapWidth;
+				TruncatedVertex.Y = Args.IntersectYWithMaxX;
+			}
+		}
+
+		PtrVoronoiVertex = VoronoiVertices.size();
+		VoronoiVertices.push_back(TruncatedVertex);
+	}
+
+	return PtrVoronoiVertex;
+}
+
+vector<VoronoiVertex>::size_type AMapPointGenerator::CreateTruncatedInfiniteVertex(const MapPointGeneratorSweepline::vertex& AnotherEndpointVertex, const LineArgs& Args) {
+	vector<VoronoiVertex>::size_type PtrVoronoiVertex;
+	if (Args.IsInfBegin) {
+		if ((0 < Args.IntersectXWithZeroY && Args.IntersectXWithZeroY < AnotherEndpointVertex.c.x)) {
+			PtrVoronoiVertex = VoronoiVertices.size();
+			VoronoiVertices.push_back(VoronoiVertex{ Args.IntersectXWithZeroY, 0.0, nullptr, true });
+		}
+		else if (0 < Args.IntersectXWithMaxY && Args.IntersectXWithMaxY < AnotherEndpointVertex.c.x) {
+			PtrVoronoiVertex = VoronoiVertices.size();
+			VoronoiVertices.push_back(VoronoiVertex{ Args.IntersectXWithMaxY, MapHeight, nullptr, true });
+		} 
+		else {
+			PtrVoronoiVertex = VoronoiVertices.size();
+			VoronoiVertices.push_back(VoronoiVertex{ 0.0, Args.IntersectYWithZeroX, nullptr, true });
+		}
+	}
+	else if(Args.IsInfEnd) {
+		if (AnotherEndpointVertex.c.x < Args.IntersectXWithMaxY && Args.IntersectXWithMaxY < MapWidth) {
+			PtrVoronoiVertex = VoronoiVertices.size();
+			VoronoiVertices.push_back(VoronoiVertex{ Args.IntersectXWithMaxY, MapHeight, nullptr, true });
+		}
+		else if ((AnotherEndpointVertex.c.x < Args.IntersectXWithZeroY && Args.IntersectXWithZeroY < MapWidth)) {
+			PtrVoronoiVertex = VoronoiVertices.size();
+			VoronoiVertices.push_back(VoronoiVertex{ Args.IntersectXWithZeroY, 0.0, nullptr, true });
+		}
+		else {
+			PtrVoronoiVertex = VoronoiVertices.size();
+			VoronoiVertices.push_back(VoronoiVertex{ MapWidth, Args.IntersectYWithMaxX, nullptr, true });
+		}
+	}
+	return PtrVoronoiVertex;
 }
 
 bool AMapPointGenerator::IsInsideMap(double x, double y) {

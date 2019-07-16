@@ -86,6 +86,14 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	struct LineArgs {
+		double Slope, Intercept;
+		double IntersectXWithZeroY, IntersectXWithMaxY;
+		double IntersectYWithZeroX, IntersectYWithMaxX;
+		bool IsInfBegin, IsInfEnd;
+	};
+
+private:
 	float PreviousMapWidth = 0.0, PreviousMapHeight = 0.0;
 
 	AActor* SpawnActorInWorld(const TCHAR* ClassName, const FVector& SpawnLocation);
@@ -97,5 +105,8 @@ private:
 	void Reset();
 	void Generate();
 	void ProcessSweeplineEdge(MapPointGeneratorSweepline& Sweepline, MapPointGeneratorSweepline::edge& Edge);
+	void CreateLineArgs(MapPointGeneratorSweepline& Sweepline, MapPointGeneratorSweepline::edge& Edge, LineArgs& Args);
+	vector<VoronoiVertex>::size_type CreateTruncatedFiniteVertex(const MapPointGeneratorSweepline::vertex& Vertex, const LineArgs& Args);
+	vector<VoronoiVertex>::size_type CreateTruncatedInfiniteVertex(const MapPointGeneratorSweepline::vertex& AnotherEndpointVertex, const LineArgs& Args);
 	bool IsInsideMap(double x, double y);
 };
